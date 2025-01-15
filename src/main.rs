@@ -1,7 +1,7 @@
 use std::io;
 
 use article::Article;
-use feedloader::{parse_article_detail, download_article_detail, download_feeds, parse_atom_feed, parse_rss_feed, Feed, FeedType};
+use feedloader::{parse_article_detail, download_article_detail, download_feeds, parse_atom_feed, parse_rss_feed, Feed};
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::{
@@ -37,7 +37,7 @@ async fn main() -> AppResult<()> {
         // Handle events.
         match tui.events.next().await? {
             Event::Tick => app.tick().await,
-            Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
+            Event::Key(key_event) => handle_key_events(key_event, &mut app).await?,
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
         }

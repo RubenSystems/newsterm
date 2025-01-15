@@ -24,7 +24,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             .split(frame.area());
         
         frame.render_widget(
-            render_headlines(&app.articles, app.selected_article_index)
+            render_headlines(&app.articles, app.selected_article_index, app.area.height)
             .block(
                 Block::bordered()
                     .title("Main Feed")
@@ -44,9 +44,9 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             ),
             layout[1],
         );
-    } else {
+    } else if !app.articles.is_empty() {
         frame.render_widget(
-            render_headlines(&app.articles, app.selected_article_index)
+            render_headlines(&app.articles, app.selected_article_index, app.area.height)
             .block(
                 Block::bordered()
                     .title("Main Feed")
@@ -86,14 +86,14 @@ fn time_ago(timestamp: i64) -> String {
     }
 }
 
-fn render_headlines(articles: &VecDeque<(Feed, Article)>, selected_index: usize) -> ratatui::widgets::Table {
+fn render_headlines(articles: &Vec<(Feed, Article)>, selected_index: usize, height: usize) -> ratatui::widgets::Table {
     let widths = vec![
-        Constraint::Percentage(3),
-        Constraint::Percentage(20),
-        Constraint::Percentage(3),
+        Constraint::Max(3),
+        Constraint::Max(10),
+        Constraint::Max(3),
         Constraint::Percentage(74),
     ];
-    let rows : Vec<Row> = articles.iter().enumerate().map(|(idx, (feed, article))| {
+    let rows : Vec<Row> = articles.iter().enumerate().skip(selected_index).take(selected_index + height).map(|(idx, (feed, article))| {
         if idx == selected_index  {
             Row::new(vec![
                 Cell::from(idx.to_string()), 

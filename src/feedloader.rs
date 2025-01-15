@@ -13,18 +13,10 @@ fn parse_rfc_2822_date(date: &str) -> i64 {
 /**
  * Feed
 */
-
-#[derive(Debug, Clone)]
-pub enum FeedType {
-    RSS,
-    Atom,
-}
-
 #[derive(Debug, Clone)]
 pub struct Feed {
     pub url: String,
     pub name: String,
-    pub feed_type: FeedType,
 }
 
 /**

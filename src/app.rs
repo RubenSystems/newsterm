@@ -1,7 +1,6 @@
-use std::{collections::VecDeque, error};
+use std::error;
 
 
-use chrono::Utc;
 
 use crate::{article::Article, feedloader::Feed};
 

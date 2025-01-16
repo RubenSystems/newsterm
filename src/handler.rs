@@ -43,6 +43,11 @@ async fn download_feed(app: &mut App) {
             url: "https://www.quantamagazine.org/feed/".into(),
             name: "Quanta".into(),
         },
+        Feed {
+            url: "https://news.ycombinator.com/rss".into(),
+            name: "Hacker News".into(),
+        },
+
 
     ];
 
@@ -57,13 +62,10 @@ async fn download_feed(app: &mut App) {
              None => parse_atom_feed(&content)
          };
 
-         match parsed_feed {
-             Some(v) => Some(v.into_iter().map(move |x| (feed.clone(), x))),
-             None => None,
-         }
+         parsed_feed.map(|v| v.into_iter().map(move |x| (feed.clone(), x)))
      })
-     .filter_map(|x| x)
-     .flat_map(|x| x)
+     .flatten()
+     .flatten()
      .collect();
     
     
@@ -89,6 +91,24 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                 app.quit();
             }
         },
+        KeyCode::Char('d') => {
+            match &mut app.mode {
+                AppState::Detail(dtl) if key_event.modifiers == KeyModifiers::CONTROL => {
+                    let mn = dtl.scroll_index + (0.8*(app.area.height as f64 - 3.0)) as usize;
+                    dtl.scroll_index = mn.min(dtl.content.lines().count());    
+                }
+                _ => {}
+            }
+        }
+        KeyCode::Char('u') => {
+            match &mut app.mode {
+                AppState::Detail(dtl) if key_event.modifiers == KeyModifiers::CONTROL => {
+                    let mn: i64 = dtl.scroll_index as i64 - (0.8*(app.area.height as f64 - 3.0)) as i64;
+                    dtl.scroll_index = mn.max(0) as usize;    
+                }
+                _ => {}
+            }
+        }
         KeyCode::Char('j')  => {
             match &mut app.mode {
                 AppState::Normal => {
@@ -114,11 +134,6 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                 _ => {}
             }
         },
-        KeyCode::Char('d') => {
-            if let AppState::Detail(di) = &mut app.mode {
-                di.scroll_index += 0
-            }
-        }
         KeyCode::Char('o') => {
             let _ = Command::new("open")
                 .arg("-a")
@@ -135,7 +150,7 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                 AppState::Normal => {
                     let article = app.articles[app.selected_article_index].1.clone();
                     let content = download_article_detail(&article)
-                        .map_or(None, |x| parse_article_detail(&x, app.area.width)).unwrap_or("Could not download article".to_string());
+                        .map_or(None, |x| parse_article_detail(&x, app.area.width - 3)).unwrap_or("Could not download article".to_string()); // sub the line no
                     let scroll_index = find_line_with_substring(&content, &article.title);
                     app.mode = AppState::Detail(AppDetail { article, content, scroll_index });
                 }
@@ -147,11 +162,8 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             }
         }
         KeyCode::Backspace => {
-            match app.mode {
-                AppState::Jump(cv) => {
-                    app.mode = AppState::Jump(cv / 10); 
-                },
-                _=>{}
+            if let AppState::Jump(cv) = app.mode {
+                app.mode = AppState::Jump(cv / 10); 
             }
         }
         KeyCode::Char(v) if v.is_numeric() => {

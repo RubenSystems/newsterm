@@ -4,7 +4,6 @@ use crate::article::Article;
 use chrono::DateTime;
 use futures::future;
 use rss::Channel;
-use serde_json::Value;
 
 fn parse_rfc_2822_date(date: &str) -> i64 {
     DateTime::parse_from_rfc2822(date).map_or(0, |d| d.timestamp())
@@ -23,8 +22,8 @@ pub struct Feed {
  * Downloader
 */
 async fn download_link(url: &str) -> Option<String> {
-    let response = reqwest::get(url).await.map_or(None, |v| Some(v))?;
-    let text = response.text().await.map_or(None, |v| Some(v))?;
+    let response = reqwest::get(url).await.map_or(None, Some)?;
+    let text = response.text().await.map_or(None, Some)?;
     Some(text)
 }
 
@@ -72,12 +71,12 @@ impl Article {
 }
 
 pub fn parse_rss_feed(content: &str) -> Option<Vec<Article>> {
-    let channel = Channel::read_from(content.as_bytes()).map_or(None, |s| Some(s));
+    let channel = Channel::read_from(content.as_bytes()).map_or(None, Some);
     Some(
         channel?
             .into_items()
             .into_iter()
-            .map(|item| Article::from_rss_item(item))
+            .map(Article::from_rss_item)
             .collect(),
     )
 }
@@ -108,7 +107,7 @@ pub fn parse_atom_feed(content: &str) -> Option<Vec<Article>> {
 
     Some(
         feed.entries()
-            .into_iter()
+            .iter()
             .map(|item| Article::from_atom_item(item.clone(), &feed))
             .collect(),
     )
@@ -151,7 +150,7 @@ pub fn parse_article_detail(detail: &str, width: usize) -> Option<String> {
     } else {
         println!("Lynx command failed with error:\n{}", 
         String::from_utf8_lossy(&output.stderr));
-        return None;
+        None
     }
 }
 

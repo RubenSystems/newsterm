@@ -1,8 +1,7 @@
-use std::collections::VecDeque;
 
 use chrono::{Utc, TimeZone};
 use ratatui::{
-    layout::{Alignment, Constraint, Layout, Rect}, style::{Color, Modifier, Style}, widgets::{Block, BorderType, Cell, Paragraph, Row, Table}, Frame, text::Span
+    layout::{Alignment, Constraint, Layout}, style::{Color, Modifier, Style}, widgets::{Block, BorderType, Cell, Paragraph, Row, Table}, Frame
 };
 
 use crate::{app::{App, AppArea, AppState}, article::Article, feedloader::Feed};
@@ -146,7 +145,15 @@ fn render_headlines(articles: &Vec<(Feed, Article)>, selected_index: usize, heig
 }
 
 fn render_detail(detail: String, offset: usize) -> ratatui::widgets::Paragraph<'static> {
+    // let widths = vec![Constraint::Max(3), Constraint::Fill(1)];
+    // let rows: Vec<Row> = detail.lines().enumerate().map(|(idx, txt)| {
+    //     Row::new(vec![
+    //         Cell::from(idx.to_string()).style(Style::default().fg(Color::Rgb(128,128,128))),
+    //         Cell::from(txt.to_string())
+    //     ])
+    // }).collect();
     Paragraph::new(detail).wrap(ratatui::widgets::Wrap { trim: false }).scroll((offset as u16, 0))
+    // Table::new(rows, widths)
 }
 
 fn render_jump(current_jump: usize) -> ratatui::widgets::Paragraph<'static> {

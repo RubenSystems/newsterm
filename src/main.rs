@@ -1,7 +1,5 @@
 use std::io;
 
-use article::Article;
-use feedloader::{parse_article_detail, download_article_detail, download_feeds, parse_atom_feed, parse_rss_feed, Feed};
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::{

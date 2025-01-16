@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Layout, Rect}, style::{Color, Modifier, Style}, widgets::{Block, BorderType, Cell, Paragraph, Row, Table}, Frame, text::Span
 };
 
-use crate::{app::{App, AppArea}, article::Article, feedloader::Feed};
+use crate::{app::{App, AppArea, AppState}, article::Article, feedloader::Feed};
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame) {
@@ -16,45 +16,77 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     //
     let area = frame.area();
     app.area = AppArea { width: area.width as usize, height: area.height as usize }; 
-    if let Some(dtl) = &app.detail {
-        let constraints = vec![Constraint::Percentage(20), Constraint::Percentage(80)];
-        let layout = Layout::default()
-            .direction(ratatui::layout::Direction::Vertical)
-            .constraints(constraints)
-            .split(frame.area());
-        
-        frame.render_widget(
-            render_headlines(&app.articles, app.selected_article_index, app.area.height)
-            .block(
-                Block::bordered()
-                    .title("Main Feed")
-                    .title_alignment(Alignment::Left)
-                    .border_type(BorderType::Rounded),
-            ),
-            layout[0],
-        );
+    match &app.mode {
+        AppState::Normal => {
+            frame.render_widget(
+                render_headlines(&app.articles, app.selected_article_index, app.area.height)
+                .block(
+                    Block::bordered()
+                        .title("Main Feed")
+                        .title_alignment(Alignment::Left)
+                        .border_type(BorderType::Rounded),
+                ),
+                frame.area(),
+            );
+        }
+        AppState::Detail(dtl) => {
+            let constraints = vec![Constraint::Percentage(20), Constraint::Percentage(80)];
+            let layout = Layout::default()
+                .direction(ratatui::layout::Direction::Vertical)
+                .constraints(constraints)
+                .split(frame.area());
+            
+            frame.render_widget(
+                render_headlines(&app.articles, app.selected_article_index, app.area.height)
+                .block(
+                    Block::bordered()
+                        .title("Main Feed")
+                        .title_alignment(Alignment::Left)
+                        .border_type(BorderType::Rounded),
+                ),
+                layout[0],
+            );
 
-        frame.render_widget(
-            render_detail(dtl.content.clone(), dtl.scroll_index)
-            .block(
-                Block::bordered()
-                    .title(dtl.article.title.clone())
-                    .title_alignment(Alignment::Left)
-                    .border_type(BorderType::Rounded),
-            ),
-            layout[1],
-        );
-    } else if !app.articles.is_empty() {
-        frame.render_widget(
-            render_headlines(&app.articles, app.selected_article_index, app.area.height)
-            .block(
-                Block::bordered()
-                    .title("Main Feed")
-                    .title_alignment(Alignment::Left)
-                    .border_type(BorderType::Rounded),
-            ),
-            frame.area(),
-        );
+            frame.render_widget(
+                render_detail(dtl.content.clone(), dtl.scroll_index)
+                .block(
+                    Block::bordered()
+                        .title(dtl.article.title.clone())
+                        .title_alignment(Alignment::Left)
+                        .border_type(BorderType::Rounded),
+                ),
+                layout[1],
+            );
+        },
+        AppState::Jump(cv) => {
+            let constraints = vec![Constraint::Fill(1), Constraint::Max(3)];
+            let layout = Layout::default()
+                .direction(ratatui::layout::Direction::Vertical)
+                .constraints(constraints)
+                .split(frame.area());
+            
+            frame.render_widget(
+                render_headlines(&app.articles, app.selected_article_index, app.area.height)
+                .block(
+                    Block::bordered()
+                        .title("Main Feed")
+                        .title_alignment(Alignment::Left)
+                        .border_type(BorderType::Rounded),
+                ),
+                layout[0],
+            );
+
+            frame.render_widget(
+                render_jump(*cv)
+                .block(
+                    Block::bordered()
+                        .title("Jump To Article")
+                        .title_alignment(Alignment::Left)
+                        .border_type(BorderType::Rounded),
+                ),
+                layout[1],
+            );
+        }
     }
 }
 
@@ -91,7 +123,7 @@ fn render_headlines(articles: &Vec<(Feed, Article)>, selected_index: usize, heig
         Constraint::Max(3),
         Constraint::Max(10),
         Constraint::Max(3),
-        Constraint::Percentage(74),
+        Constraint::Fill(1),
     ];
     let rows : Vec<Row> = articles.iter().enumerate().skip(selected_index).take(selected_index + height).map(|(idx, (feed, article))| {
         if idx == selected_index  {
@@ -117,7 +149,9 @@ fn render_detail(detail: String, offset: usize) -> ratatui::widgets::Paragraph<'
     Paragraph::new(detail).wrap(ratatui::widgets::Wrap { trim: false }).scroll((offset as u16, 0))
 }
 
-
+fn render_jump(current_jump: usize) -> ratatui::widgets::Paragraph<'static> {
+    Paragraph::new(current_jump.to_string())
+}
 
 
 

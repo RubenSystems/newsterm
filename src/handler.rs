@@ -1,6 +1,6 @@
 use std::process::Command;
 use chrono::Utc;
-use crate::{app::{App, AppDetail, AppResult}, feedloader::{Feed, download_feeds, download_article_detail, parse_article_detail, parse_rss_feed, parse_atom_feed}, article::Article};
+use crate::{app::{App, AppDetail, AppResult, AppState}, feedloader::{Feed, download_feeds, download_article_detail, parse_article_detail, parse_rss_feed, parse_atom_feed}, article::Article};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 fn clean(string: &str) -> String {
@@ -77,11 +77,11 @@ async fn download_feed(app: &mut App) {
 pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     match key_event.code {
         // Exit application on `ESC` or `q`
-        KeyCode::Char('q') if app.detail.is_none() => {
-            app.quit();
-        }
-        KeyCode::Char('q') => {
-            app.detail = None
+        KeyCode::Char('q')  => {
+            match app.mode {
+                AppState::Normal => app.quit(), 
+                _ => app.mode = AppState::Normal
+            }
         }
         // Exit application on `Ctrl-C`
         KeyCode::Char('c') | KeyCode::Char('C') => {
@@ -89,25 +89,33 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
                 app.quit();
             }
         },
-        KeyCode::Char('j') if app.detail.is_none()  =>{
-            let temp: i64 = app.selected_article_index as i64;  
-            app.selected_article_index = (temp + 1).min(app.articles.len() as i64 - 1) as usize
-        },
-        KeyCode::Char('j') => {
-            if let Some(di) = &mut app.detail { di.scroll_index += 1 }
-        }
-        KeyCode::Char('k') if app.detail.is_none() => {
-            let temp: i64 = app.selected_article_index as i64;
-            app.selected_article_index = (temp - 1).max(0) as usize;
+        KeyCode::Char('j')  => {
+            match &mut app.mode {
+                AppState::Normal => {
+                    let temp: i64 = app.selected_article_index as i64;  
+                    app.selected_article_index = (temp + 1).min(app.articles.len() as i64 - 1) as usize
+                }
+                AppState::Detail(di) => {
+                    di.scroll_index += 1
+                }
+                _ => {}
+            }
         },
         KeyCode::Char('k') => {
-            if let Some(di) = &mut app.detail { 
-                let tmp = (di.scroll_index as i64 - 1).max(0);
-                di.scroll_index = tmp as usize
+            match &mut app.mode { 
+                AppState::Normal => {
+                    let temp: i64 = app.selected_article_index as i64;
+                    app.selected_article_index = (temp - 1).max(0) as usize;
+                },
+                AppState::Detail(di) => {
+                    let tmp = (di.scroll_index as i64 - 1).max(0);
+                    di.scroll_index = tmp as usize
+                }
+                _ => {}
             }
         },
         KeyCode::Char('d') => {
-            if let Some(di) = &mut app.detail {
+            if let AppState::Detail(di) = &mut app.mode {
                 di.scroll_index += 0
             }
         }
@@ -123,11 +131,38 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             download_feed(app).await;
         }
         KeyCode::Enter => {
-            let article = app.articles[app.selected_article_index].1.clone();
-            let content = download_article_detail(&article)
-                .map_or(None, |x| parse_article_detail(&x, app.area.width)).unwrap_or("Could not download article".to_string());
-            let scroll_index = find_line_with_substring(&content, &article.title);
-            app.detail = Some(AppDetail { article, content, scroll_index })
+            match app.mode {
+                AppState::Normal => {
+                    let article = app.articles[app.selected_article_index].1.clone();
+                    let content = download_article_detail(&article)
+                        .map_or(None, |x| parse_article_detail(&x, app.area.width)).unwrap_or("Could not download article".to_string());
+                    let scroll_index = find_line_with_substring(&content, &article.title);
+                    app.mode = AppState::Detail(AppDetail { article, content, scroll_index });
+                }
+                AppState::Jump(cv) => {
+                    app.selected_article_index = cv;
+                    app.mode = AppState::Normal;
+                }
+                _ => {}
+            }
+        }
+        KeyCode::Backspace => {
+            match app.mode {
+                AppState::Jump(cv) => {
+                    app.mode = AppState::Jump(cv / 10); 
+                },
+                _=>{}
+            }
+        }
+        KeyCode::Char(v) if v.is_numeric() => {
+            let numeric = (v as usize) - '0' as usize;
+            match app.mode {
+                AppState::Jump(cv) => {
+                    let ncv = cv * 10 + numeric;
+                    app.mode = AppState::Jump(ncv);
+                }, 
+                _ => { app.mode = AppState::Jump(numeric) } 
+            }
         }
         _ => {}
     }

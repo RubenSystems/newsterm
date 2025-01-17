@@ -1,7 +1,7 @@
 
 # newsterm
 
-I don't like modern news apps/websites. All I want is a simple TUI that can show me a reverse chronological feed of the latest events from a few different RSS feeds. It is also unplesent having to go to a news companies website in order to read the story. Preferably, I can see the article in the same UI without ads or cookie popups. This *hopefully* is what newsterm achieves. 
+I don't like modern news apps/websites. All I want is a simple TUI that can show me a reverse chronological feed of the latest events from a few different RSS feeds. It is also unplesent having to go to a news companies website in order to read the story. Preferably, I can see the article in the same UI without ads or cookie popups. This is *hopefully* what newsterm achieves. 
 
 
 <img width="906" alt="Screenshot 2025-01-17 at 9 08 29 pm" src="https://github.com/user-attachments/assets/a32e666b-9673-4d79-accf-99e8c84330cb" />

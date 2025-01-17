@@ -117,25 +117,25 @@ fn time_ago(timestamp: i64) -> String {
     }
 }
 
-fn render_headlines(articles: &Vec<(Feed, Article)>, selected_index: usize, height: usize) -> ratatui::widgets::Table {
+fn render_headlines(articles: &Vec<Article>, selected_index: usize, height: usize) -> ratatui::widgets::Table {
     let widths = vec![
         Constraint::Max(3),
         Constraint::Max(10),
         Constraint::Max(3),
         Constraint::Fill(1),
     ];
-    let rows : Vec<Row> = articles.iter().enumerate().skip(selected_index).take(selected_index + height).map(|(idx, (feed, article))| {
+    let rows : Vec<Row> = articles.iter().enumerate().skip(selected_index).take(selected_index + height).map(|(idx, article)| {
         if idx == selected_index  {
             Row::new(vec![
                 Cell::from(idx.to_string()), 
-                Cell::from(feed.name.to_string()), 
+                Cell::from(article.publisher.to_string()), 
                 Cell::from(time_ago(article.date)),
                 Cell::from(article.title.to_string()).style(Style::default().add_modifier(Modifier::BOLD))
             ]).style(Style::default().bg(Color::Rgb(64, 64, 64)))
         } else {
             Row::new(vec![
                 Cell::from(idx.to_string()).style(Style::default().fg(Color::Rgb(128,128,128))), 
-                Cell::from(feed.name.to_string()), 
+                Cell::from(article.publisher.to_string()), 
                 Cell::from(time_ago(article.date)).style(Style::default().fg(Color::Rgb(128,128,128))),
                 Cell::from(article.title.to_string()).style(Style::default().add_modifier(Modifier::BOLD))
             ])
@@ -145,15 +145,7 @@ fn render_headlines(articles: &Vec<(Feed, Article)>, selected_index: usize, heig
 }
 
 fn render_detail(detail: String, offset: usize) -> ratatui::widgets::Paragraph<'static> {
-    // let widths = vec![Constraint::Max(3), Constraint::Fill(1)];
-    // let rows: Vec<Row> = detail.lines().enumerate().map(|(idx, txt)| {
-    //     Row::new(vec![
-    //         Cell::from(idx.to_string()).style(Style::default().fg(Color::Rgb(128,128,128))),
-    //         Cell::from(txt.to_string())
-    //     ])
-    // }).collect();
     Paragraph::new(detail).wrap(ratatui::widgets::Wrap { trim: false }).scroll((offset as u16, 0))
-    // Table::new(rows, widths)
 }
 
 fn render_jump(current_jump: usize) -> ratatui::widgets::Paragraph<'static> {

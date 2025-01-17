@@ -2,7 +2,7 @@ use std::error;
 
 
 
-use crate::{article::Article, feedloader::Feed};
+use crate::article::Article;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -34,7 +34,7 @@ pub enum AppState {
 #[derive(Debug)]
 pub struct App {
     pub running: bool,
-    pub articles: Vec<(Feed, Article)>,
+    pub articles: Vec<Article>,
     pub selected_article_index: usize, 
     pub area: AppArea,
     pub last_update_timestamp: i64,

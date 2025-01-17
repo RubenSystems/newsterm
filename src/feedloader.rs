@@ -15,7 +15,6 @@ fn parse_rfc_2822_date(date: &str) -> i64 {
 #[derive(Debug, Clone)]
 pub struct Feed {
     pub url: String,
-    pub name: String,
 }
 
 /**
@@ -59,24 +58,25 @@ pub async fn download_feeds(feeds: Vec<Feed>) -> Vec<(Feed, String)> {
 */
 
 impl Article {
-    fn from_rss_item(rss_item: rss::Item) -> Self {
+    fn from_rss_item(feed_name: String, rss_item: rss::Item) -> Self {
         Self {
             title: rss_item.title().unwrap_or("").to_string(),
             summary: rss_item.content().unwrap_or("").to_string(),
             date: parse_rfc_2822_date(rss_item.pub_date().unwrap_or("")),
             link: rss_item.link().unwrap_or("").to_string(),
-            publisher: rss_item.author().unwrap_or("").to_string(),
+            publisher: feed_name
         }
     }
 }
 
 pub fn parse_rss_feed(content: &str) -> Option<Vec<Article>> {
-    let channel = Channel::read_from(content.as_bytes()).map_or(None, Some);
+    let channel = Channel::read_from(content.as_bytes()).map_or(None, Some)?;
     Some(
-        channel?
+        channel
+            .clone()
             .into_items()
             .into_iter()
-            .map(Article::from_rss_item)
+            .map(|x| Article::from_rss_item(channel.title().to_string(), x))
             .collect(),
     )
 }
@@ -103,7 +103,7 @@ impl Article {
 }
 
 pub fn parse_atom_feed(content: &str) -> Option<Vec<Article>> {
-    let feed = content.parse::<atom_syndication::Feed>().unwrap();
+    let Ok(feed) = content.parse::<atom_syndication::Feed>() else {return None};
 
     Some(
         feed.entries()
@@ -128,11 +128,11 @@ pub fn download_article_detail(article: &Article) -> Result<String, std::io::Err
 pub fn parse_article_detail(detail: &str, width: usize) -> Option<String> {
 
     let Ok(mut process) = Command::new("lynx")
-        .arg("-stdin") // Lynx flag to read from stdin
-        .arg("-dump")  // Lx flag to output plain text
+        .arg("-stdin")
+        .arg("-dump")
         .arg(format!("-width={width}"))
-        .stdin(Stdio::piped())  // Open stdin for writing
-        .stdout(Stdio::piped()) // Capture stdout
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped()) 
         .spawn() else {return None};
         
 

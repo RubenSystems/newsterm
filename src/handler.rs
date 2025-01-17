@@ -1,5 +1,6 @@
-use std::process::Command;
+use std::{path::PathBuf, process::Command};
 use chrono::Utc;
+use dirs::home_dir;
 use crate::{app::{App, AppDetail, AppResult, AppState}, feedloader::{Feed, download_feeds, download_article_detail, parse_article_detail, parse_rss_feed, parse_atom_feed}, article::Article};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -22,54 +23,27 @@ fn find_line_with_substring(big_string: &str, substring: &str) -> usize {
 }
 
 async fn download_feed(app: &mut App) {
-    let feeds = vec![
-        Feed {
-            url: "http://feeds.bbci.co.uk/news/rss.xml".into(),
-            name: "BBC News".into(),
-        },
-        Feed {
-            url: "https://feeds.theguardian.com/theguardian/uk/rss".into(),
-            name: "The Guardian".into(),
-        },
-        Feed {
-            url: "https://www.theverge.com/rss/index.xml".into(),
-            name: "The Verge".into(),
-        },
-        Feed {
-            url: "https://www.wired.com/feed/rss".into(),
-            name: "WIRED".into(),
-        },
-        Feed {
-            url: "https://www.quantamagazine.org/feed/".into(),
-            name: "Quanta".into(),
-        },
-        Feed {
-            url: "https://news.ycombinator.com/rss".into(),
-            name: "Hacker News".into(),
-        },
-
-
-    ];
-
-
-    let mut downloaded: Vec<(Feed, Article)> = download_feeds(feeds)
+    let mut config_path: PathBuf = home_dir().expect("Couldn't find home dir");
+    config_path.push(".config/newsterm/feeds");
+    let feed_file = std::fs::read_to_string(config_path).unwrap();
+    let mut downloaded: Vec<Article> = download_feeds(feed_file.lines().map(|x| Feed { url: x.to_string() } ).collect())
      .await
      .into_iter()
-     .map(|(feed, content)| {
+     .map(|(_, content)| {
          let rss_parse = parse_rss_feed(&content);
          let parsed_feed = match rss_parse {
              Some(v) => Some(v), 
              None => parse_atom_feed(&content)
          };
 
-         parsed_feed.map(|v| v.into_iter().map(move |x| (feed.clone(), x)))
+         parsed_feed.map(|v| v.into_iter())
      })
      .flatten()
      .flatten()
      .collect();
     
     
-     downloaded.sort_by(|x, y| y.1.date.cmp(&x.1.date));
+     downloaded.sort_by(|x, y| y.date.cmp(&x.date));
      app.articles = downloaded;
      app.last_update_timestamp = Utc::now().timestamp();
 
@@ -138,17 +112,18 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             let _ = Command::new("open")
                 .arg("-a")
                 .arg("Safari")
-                .arg(app.articles[app.selected_article_index].1.link.clone())
+                .arg(app.articles[app.selected_article_index].link.clone())
                 .output();
         },
         KeyCode::Char('r') => {
             app.selected_article_index = 0;
+            app.mode = AppState::Normal;
             download_feed(app).await;
         }
         KeyCode::Enter => {
             match app.mode {
                 AppState::Normal => {
-                    let article = app.articles[app.selected_article_index].1.clone();
+                    let article = app.articles[app.selected_article_index].clone();
                     let content = download_article_detail(&article)
                         .map_or(None, |x| parse_article_detail(&x, app.area.width - 3)).unwrap_or("Could not download article".to_string()); // sub the line no
                     let scroll_index = find_line_with_substring(&content, &article.title);

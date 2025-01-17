@@ -22,7 +22,7 @@ fn find_line_with_substring(big_string: &str, substring: &str) -> usize {
     0 
 }
 
-async fn download_feed(app: &mut App) {
+pub async fn download_feed(app: &mut App) {
     let mut config_path: PathBuf = home_dir().expect("Couldn't find home dir");
     config_path.push(".config/newsterm/feeds");
     let feed_file = std::fs::read_to_string(config_path).unwrap();

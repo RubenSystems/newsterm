@@ -4,7 +4,7 @@ use crossterm::event::{Event as CrosstermEvent, KeyEvent, MouseEvent};
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc;
 
-use crate::app::AppResult;
+use crate::{app::{AppDetail, AppResult}, article::Article};
 
 /// Terminal events.
 #[derive(Clone, Debug)]
@@ -19,6 +19,45 @@ pub enum Event {
     Resize(u16, u16),
 
 }
+
+#[derive(Clone, Debug)]
+pub enum NetworkEvent {
+    RequestArticleDetail(Article),
+    RecieveArticleDetail(AppDetail),
+    RequestFeedLoad, 
+    FeedLoaded(Vec<Article>)
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub struct NetworkHandler {
+    sender: mpsc::UnboundedSender<NetworkEvent>,
+    receiver: mpsc::UnboundedReceiver<NetworkEvent>,
+}
+
+impl NetworkHandler {
+    pub fn new() -> Self {
+        let (sender, receiver) = mpsc::unbounded_channel();
+        let _sender = sender.clone();
+
+        Self {
+            sender,
+            receiver,
+        }
+    }
+
+   // pub async fn next(&mut self) -> AppResult<NetworkEvent> {
+    //     self.receiver
+    //         .recv()
+    //         .await
+    //         .ok_or(Box::new(std::io::Error::new(
+    //             std::io::ErrorKind::Other,
+    //             "This is a network error",
+    //         )))
+    // }
+}
+
+
 
 /// Terminal event handler.
 #[allow(dead_code)]

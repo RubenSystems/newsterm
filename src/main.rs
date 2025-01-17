@@ -1,5 +1,7 @@
 use std::io;
 
+use event::NetworkHandler;
+use handler::download_feed;
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::{
@@ -27,7 +29,7 @@ async fn main() -> AppResult<()> {
     let events = EventHandler::new(250);
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
-
+    download_feed(&mut app).await ;
     // Start the main loop.
     while app.running {
         // Render the user interface.
@@ -39,6 +41,8 @@ async fn main() -> AppResult<()> {
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
         }
+
+        
     }
 
     // Exit the user interface.

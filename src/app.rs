@@ -15,7 +15,7 @@ pub struct AppArea {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AppDetail {
    pub article: Article,
    pub content: String, 
